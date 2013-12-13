@@ -74,6 +74,7 @@ def logout_view(request):
 
 @view_config(
     route_name='users',
+    permission='admin',
     renderer='users.mako',
 )
 def users_view(request):
@@ -83,6 +84,7 @@ def users_view(request):
 
 @view_config(
     route_name='user',
+    permission='admin',
     renderer='user.mako',
 )
 def user_view(request):
@@ -142,6 +144,7 @@ def validate_page(title, body):
 
 @view_config(
     route_name='create_page',
+    permission='create',
     renderer='edit_page.mako',
 )
 def create_page_view(request):
@@ -175,6 +178,7 @@ def create_page_view(request):
 
 @view_config(
     route_name='edit_page',
+    permission='edit',
     renderer='edit_page.mako',
 )
 def edit_page_view(request):

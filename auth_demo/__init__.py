@@ -1,13 +1,32 @@
+import json
+
 from pyramid.config import Configurator
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
+from pyramid.security import ALL_PERMISSIONS, Allow, Authenticated
 from sqlalchemy import engine_from_config
 
 from .models import (
     DBSession,
     Base,
+    User,
     )
 
+### MAP GROUPS TO PERMISSIONS
+class Root(object):
+    __acl__ = [
+        (Allow, Authenticated, 'create'),
+        (Allow, 'g:editors', 'edit'),
+        (Allow, 'g:admin', ALL_PERMISSIONS),
+    ]
+
+    def __init__(self, request):
+        self.request = request
+
+def groupfinder(userid, request):
+    user=DBSession.query(User).filter(User.login==userid).first()
+    if user:
+        return ['g:%s' % g for g in json.loads(user.groups)]
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
@@ -16,12 +35,13 @@ def main(global_config, **settings):
     DBSession.configure(bind=engine)
     Base.metadata.bind = engine
 
-    authn_policy = AuthTktAuthenticationPolicy('auth.secret')
+    authn_policy = AuthTktAuthenticationPolicy('auth.secret', callback=groupfinder)
     authz_policy = ACLAuthorizationPolicy()
 
     config = Configurator(settings=settings,
         authentication_policy=authn_policy,
         authorization_policy=authz_policy,
+        root_factory=Root,
     )
     config.include('pyramid_mako')
 
