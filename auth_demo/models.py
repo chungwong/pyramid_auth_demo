@@ -1,4 +1,5 @@
 import json
+from pyramid.security import Allow
 from sqlalchemy import (
     Column,
     Index,
@@ -36,6 +37,12 @@ class User(Base):
     def check_password(self, passwd):
         return self.password == passwd
 
+    @property
+    def __acl__(self):
+        return [
+            (Allow, self.login, 'view'),
+        ]
+
 class Page(Base):
     __tablename__='pages'
     id=Column(Integer, primary_key=True)
@@ -49,3 +56,10 @@ class Page(Base):
         self.uri = uri
         self.body = body
         self.owner = owner
+
+    @property
+    def __acl__(self):
+        return [
+            (Allow, self.owner, 'edit'),
+            (Allow, 'g:editors', 'edit'),
+        ]

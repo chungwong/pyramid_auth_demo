@@ -74,7 +74,7 @@ def logout_view(request):
 
 @view_config(
     route_name='users',
-    permission='admin',
+    permission='view',
     renderer='users.mako',
 )
 def users_view(request):
@@ -84,16 +84,12 @@ def users_view(request):
 
 @view_config(
     route_name='user',
-    permission='admin',
+    permission='view',
     renderer='user.mako',
 )
 def user_view(request):
-    login = request.matchdict['login']
-    user = DBSession.query(User).filter(User.login==login).first()
-    if not user:
-        raise HTTPNotFound()
-
-    pages = DBSession.query(Page).filter(Page.owner == login)
+    user=request.context
+    pages = DBSession.query(Page).filter(Page.owner == user.login)
 
     return {
         'user': user,
@@ -102,23 +98,22 @@ def user_view(request):
 
 @view_config(
     route_name='pages',
+    permission='view',
     renderer='pages.mako',
 )
 def pages_view(request):
     return {
-        'pages': DBSession.query(Page).all(),
+        'pages': DBSession.query(Page).all()
+,
     }
 
 @view_config(
     route_name='page',
+    permission='view',
     renderer='page.mako',
 )
 def page_view(request):
-    uri = request.matchdict['title']
-    page = DBSession.query(Page).filter(Page.uri==uri).first()
-    if not page:
-        raise HTTPNotFound()
-
+    page = request.context
     return {
         'page': page,
     }
@@ -182,10 +177,7 @@ def create_page_view(request):
     renderer='edit_page.mako',
 )
 def edit_page_view(request):
-    uri = request.matchdict['title']
-    page = DBSession.query(Page).filter(Page.uri==uri).first()
-    if not page:
-        raise HTTPNotFound()
+    page = request.context
 
     errors = []
     if request.method == 'POST':

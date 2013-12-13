@@ -3,25 +3,53 @@ import json
 from pyramid.config import Configurator
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import ALL_PERMISSIONS, Allow, Authenticated
+from pyramid.security import ALL_PERMISSIONS, Allow, Authenticated, Everyone
 from sqlalchemy import engine_from_config
 
 from .models import (
     DBSession,
     Base,
     User,
+    Page,
     )
 
 ### MAP GROUPS TO PERMISSIONS
-class Root(object):
+class RootFactory(object):
     __acl__ = [
-        (Allow, Authenticated, 'create'),
-        (Allow, 'g:editors', 'edit'),
         (Allow, 'g:admin', ALL_PERMISSIONS),
     ]
 
     def __init__(self, request):
         self.request = request
+
+class UserFactory(object):
+    __acl__ = [
+        (Allow, 'g:admin', ALL_PERMISSIONS),
+    ]
+
+    def __init__(self, request):
+        self.request = request
+
+    def __getitem__(self, key):
+        user = DBSession.query(User).filter(User.login==key).first()
+        user.__parent__ = self
+        user.__name__ = key
+        return user
+
+class PageFactory(object):
+    __acl__ = [
+        (Allow, Everyone, 'view'),
+        (Allow, Authenticated, 'create'),
+    ]
+
+    def __init__(self, request):
+        self.request = request
+
+    def __getitem__(self, key):
+        page = DBSession.query(Page).filter(Page.title==key).first()
+        page.__parent__ = self
+        page.__name__ = key
+        return page
 
 def groupfinder(userid, request):
     user=DBSession.query(User).filter(User.login==userid).first()
@@ -41,7 +69,7 @@ def main(global_config, **settings):
     config = Configurator(settings=settings,
         authentication_policy=authn_policy,
         authorization_policy=authz_policy,
-        root_factory=Root,
+        root_factory=RootFactory,
     )
     config.include('pyramid_mako')
 
@@ -49,13 +77,16 @@ def main(global_config, **settings):
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
 
-    config.add_route('users', '/users')
-    config.add_route('user', '/user/{login}')
+    config.add_route('users', '/users', factory=UserFactory)
+    config.add_route('user', '/user/{login}', factory=UserFactory,
+                     traverse='/{login}')
 
-    config.add_route('pages', '/pages')
-    config.add_route('create_page', '/create_page')
-    config.add_route('page', '/page/{title}')
-    config.add_route('edit_page', '/page/{title}/edit')
+    config.add_route('pages', '/pages', factory=PageFactory)
+    config.add_route('create_page', '/create_page', factory=PageFactory)
+    config.add_route('page', '/page/{title}', factory=PageFactory,
+                     traverse='/{title}')
+    config.add_route('edit_page', '/page/{title}/edit', factory=PageFactory,
+                     traverse='/{title}')
     config.scan()
 
     return config.make_wsgi_app()
