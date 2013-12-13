@@ -3,12 +3,16 @@ auth_demo README
 
 Getting Started
 ---------------
+This is a pyramid authentication and authorisation demostration. 
+It demostrates how to implement group and object level securities.
+It is basically a SQLAlchemy version of [Michael Merickel's demo](http://michael.merickel.org/projects/pyramid_auth_demo)
 
-- cd <directory containing this file>
 
-- $VENV/bin/python setup.py develop
+###  No Security
+git checkout no_security
 
-- $VENV/bin/initialize_auth_demo_db development.ini
+###  Group Level Security
+git checkout group_security
 
-- $VENV/bin/pserve development.ini
-
+###  Object Level Security
+git checkout object_security
